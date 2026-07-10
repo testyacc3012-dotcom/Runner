@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Custom Discord Bot Developer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0e14;
+    --surface:#131722;
+    --surface-2:#1a1f2e;
+    --line:#262c3d;
+    --text:#e7ebf3;
+    --text-dim:#8992a9;
+    --blurple:#5865f2;
+    --green:#57f287;
+    --yellow:#fee75c;
+    --red:#ed4245;
+    --mono:'JetBrains Mono', monospace;
+    --sans:'Inter', sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    line-height:1.6;
+    overflow-x:hidden;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.01ms !important; transition-duration:0.01ms !important;}
+  }
+
+  .wrap{max-width:900px; margin:0 auto; padding:0 24px;}
+
+  /* ---------- NAV ---------- */
+  nav{
+    position:sticky; top:0; z-index:50;
+    background:rgba(11,14,20,0.85);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  nav .wrap{display:flex; align-items:center; justify-content:space-between; height:64px;}
+  .brand{font-family:var(--mono); font-weight:700; font-size:15px; display:flex; align-items:center; gap:8px;}
+  .brand .dot{width:8px; height:8px; border-radius:50%; background:var(--green); box-shadow:0 0 8px var(--green);}
+  nav a.cta{
+    font-family:var(--mono); font-size:13px; font-weight:500;
+    color:var(--bg); background:var(--green);
+    padding:9px 16px; border-radius:6px; text-decoration:none;
+  }
+
+  /* ---------- HERO ---------- */
+  .hero{padding:80px 0 60px;}
+  .terminal-line{
+    font-family:var(--mono); font-size:15px; color:var(--text-dim);
+    display:flex; align-items:center; gap:10px; margin-bottom:28px;
+  }
+  .terminal-line .prompt{color:var(--green);}
+  .terminal-line .typed{color:var(--text); border-right:2px solid var(--green); padding-right:4px;
+    animation:blink 0.9s step-end infinite;}
+  @keyframes blink{50%{border-color:transparent;}}
+
+  .embed-card{
+    background:var(--surface); border-radius:8px; overflow:hidden;
+    display:flex; max-width:620px;
+    opacity:0; transform:translateY(14px);
+    animation:rise 0.6s ease forwards; animation-delay:2.1s;
+    border:1px solid var(--line);
+  }
+  @keyframes rise{to{opacity:1; transform:translateY(0);}}
+  .embed-bar{width:4px; background:var(--blurple); flex-shrink:0;}
+  .embed-body{padding:18px 22px;}
+  .embed-eyebrow{font-family:var(--mono); font-size:12px; color:var(--blurple); font-weight:700; letter-spacing:0.04em; margin-bottom:4px;}
+  .embed-title{font-size:26px; font-weight:800; margin-bottom:10px; font-family:var(--sans);}
+  .embed-desc{color:var(--text-dim); font-size:15px; max-width:52ch;}
+  .embed-fields{display:flex; gap:28px; margin-top:16px; flex-wrap:wrap;}
+  .embed-field .fname{font-family:var(--mono); font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em;}
+  .embed-field .fval{font-size:14px; font-weight:600; margin-top:3px;}
+
+  /* ---------- SECTION HEADERS ---------- */
+  section{padding:56px 0;}
+  .section-tag{font-family:var(--mono); font-size:12px; color:var(--green); font-weight:700; letter-spacing:0.06em; margin-bottom:10px;}
+  h2{font-size:28px; font-weight:800; margin-bottom:8px;}
+  .section-sub{color:var(--text-dim); font-size:15px; max-width:52ch; margin-bottom:36px;}
+
+  /* ---------- COMMAND PALETTE (capabilities) ---------- */
+  .palette{background:var(--surface); border:1px solid var(--line); border-radius:10px; overflow:hidden;}
+  .cmd-row{
+    display:flex; align-items:flex-start; gap:16px;
+    padding:18px 20px; border-bottom:1px solid var(--line);
+    transition:background 0.15s ease;
+  }
+  .cmd-row:last-child{border-bottom:none;}
+  .cmd-row:hover{background:var(--surface-2);}
+  .cmd-icon{
+    font-family:var(--mono); font-size:13px; font-weight:700;
+    background:var(--surface-2); color:var(--blurple);
+    width:34px; height:34px; border-radius:7px;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0; margin-top:2px;
+  }
+  .cmd-name{font-family:var(--mono); font-weight:700; font-size:15px;}
+  .cmd-desc{color:var(--text-dim); font-size:14px; margin-top:3px;}
+
+  /* ---------- PROCESS (chat thread) ---------- */
+  .thread{display:flex; flex-direction:column; gap:14px;}
+  .msg{max-width:75%; padding:12px 16px; border-radius:12px; font-size:14.5px;}
+  .msg .who{font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-bottom:4px; display:block;}
+  .msg.them{background:var(--surface); align-self:flex-start; border-bottom-left-radius:3px;}
+  .msg.me{background:var(--blurple); color:#fff; align-self:flex-end; border-bottom-right-radius:3px;}
+  .msg.me .who{color:rgba(255,255,255,0.75);}
+
+  /* ---------- NOTE CALLOUT ---------- */
+  .callout{
+    display:flex; gap:14px; background:var(--surface);
+    border-left:3px solid var(--yellow); border-radius:8px;
+    padding:18px 20px; align-items:flex-start;
+  }
+  .callout .ico{font-size:18px;}
+  .callout .body strong{color:var(--yellow); font-family:var(--mono); font-size:13px; display:block; margin-bottom:4px;}
+  .callout .body p{color:var(--text-dim); font-size:14px;}
+
+  /* ---------- STACK BADGES ---------- */
+  .badges{display:flex; gap:10px; flex-wrap:wrap;}
+  .badge{
+    font-family:var(--mono); font-size:12.5px; font-weight:600;
+    background:var(--surface-2); border:1px solid var(--line);
+    color:var(--text); padding:7px 12px; border-radius:6px;
+  }
+
+  /* ---------- FOOTER / CONTACT ---------- */
+  footer{padding:60px 0 80px;}
+  .compose{
+    background:var(--surface); border:1px solid var(--line); border-radius:10px;
+    padding:14px 18px; display:flex; align-items:center; gap:12px;
+  }
+  .compose input{
+    flex:1; background:transparent; border:none; outline:none;
+    color:var(--text); font-family:var(--sans); font-size:14.5px;
+  }
+  .compose input::placeholder{color:var(--text-dim);}
+  .compose-form{
+    background:var(--surface); border:1px solid var(--line); border-radius:10px;
+    padding:18px; display:flex; flex-direction:column; gap:12px;
+  }
+  .compose-form input, .compose-form textarea{
+    background:var(--surface-2); border:1px solid var(--line); border-radius:6px;
+    padding:11px 14px; color:var(--text); font-family:var(--sans); font-size:14.5px;
+    outline:none; resize:vertical;
+  }
+  .compose-form input:focus, .compose-form textarea:focus{border-color:var(--blurple);}
+  .compose-form textarea{min-height:90px;}
+  .compose-form input::placeholder, .compose-form textarea::placeholder{color:var(--text-dim);}
+  .send{
+    background:var(--green); color:var(--bg); border:none; border-radius:6px;
+    font-family:var(--mono); font-weight:700; font-size:13px;
+    padding:9px 16px; cursor:pointer;
+  }
+  .foot-note{color:var(--text-dim); font-size:13px; margin-top:18px; font-family:var(--mono);}
+
+  @media (max-width:640px){
+    .embed-title{font-size:21px;}
+    .embed-fields{gap:18px;}
+    h2{font-size:23px;}
+    .msg{max-width:88%;}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="brand"><span class="dot"></span> bot.dev</div>
+    <a class="cta" href="#contact">Message me</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="terminal-line">
+      <span class="prompt">&gt;</span>
+      <span class="typed" id="typedCmd"></span>
+    </div>
+    <div class="embed-card">
+      <div class="embed-bar"></div>
+      <div class="embed-body">
+        <div class="embed-eyebrow">DEVELOPER PROFILE</div>
+        <div class="embed-title">Custom Discord Bot Developer</div>
+        <div class="embed-desc">I build fully custom Discord bots — moderation, logging, verification, tickets, and whatever else your server needs. No templates. Built from scratch, around your server.</div>
+        <div class="embed-fields">
+          <div class="embed-field"><div class="fname">Stack</div><div class="fval">Node.js · discord.js</div></div>
+          <div class="embed-field"><div class="fname">Payment</div><div class="fval">USD, per project</div></div>
+          <div class="embed-field"><div class="fname">Hosting</div><div class="fval">Not included</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="capabilities">
+  <div class="wrap">
+    <div class="section-tag">/ CAPABILITIES</div>
+    <h2>What I can build</h2>
+    <p class="section-sub">If it can run on Discord, it's on the table. Here's what comes up most.</p>
+
+    <div class="palette">
+      <div class="cmd-row">
+        <div class="cmd-icon">MOD</div>
+        <div>
+          <div class="cmd-name">Moderation systems</div>
+          <div class="cmd-desc">Ban/kick/timeout/warn commands, role-gated to staff, automatic DMs with reasons and appeal links, full mod-action logging, hierarchy protection.</div>
+        </div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-icon">LOG</div>
+        <div>
+          <div class="cmd-name">Server logging</div>
+          <div class="cmd-desc">Message edits/deletes, joins/leaves, role and channel changes, voice activity — all posted cleanly to a log channel.</div>
+        </div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-icon">VER</div>
+        <div>
+          <div class="cmd-name">Verification systems</div>
+          <div class="cmd-desc">Integrations with tools like Bloxlink, custom nickname formatting, verified-only channel access, status checks.</div>
+        </div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-icon">TIX</div>
+        <div>
+          <div class="cmd-name">Ticket &amp; support systems</div>
+          <div class="cmd-desc">Private ticket channels, auto-welcome messages, staff claiming, escalation flows to your mod team.</div>
+        </div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-icon">HLP</div>
+        <div>
+          <div class="cmd-name">Helper / support tools</div>
+          <div class="cmd-desc">FAQ commands, guides, private staff notes, activity tracking for your support team.</div>
+        </div>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-icon">???</div>
+        <div>
+          <div class="cmd-name">Something else entirely</div>
+          <div class="cmd-desc">Economy, leveling, giveaways, reaction roles, welcome flows, auto-mod filters, API integrations — ask anyway.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="process">
+  <div class="wrap">
+    <div class="section-tag">/ HOW IT WORKS</div>
+    <h2>From idea to running bot</h2>
+    <p class="section-sub">Roughly how a project goes, start to finish.</p>
+
+    <div class="thread">
+      <div class="msg them"><span class="who">YOU</span>I need a bot that does X, Y, Z for my server.</div>
+      <div class="msg me"><span class="who">ME</span>Got it — I'll scope it out and quote a price based on complexity.</div>
+      <div class="msg them"><span class="who">YOU</span>Sounds good, let's do it.</div>
+      <div class="msg me"><span class="who">ME</span>I build it, test it, and hand over clean, working code.</div>
+      <div class="msg them"><span class="who">YOU</span>How do I run it?</div>
+      <div class="msg me"><span class="who">ME</span>I'll walk you through hosting it — that part's on you to run, but I'll help you get set up.</div>
+    </div>
+  </div>
+</section>
+
+<section id="stack">
+  <div class="wrap">
+    <div class="section-tag">/ TECH</div>
+    <h2>Built with</h2>
+    <p class="section-sub">Same stack every project runs on, so it stays clean and easy to extend.</p>
+    <div class="badges">
+      <span class="badge">Node.js</span>
+      <span class="badge">discord.js v14</span>
+      <span class="badge">Slash Commands</span>
+      <span class="badge">Railway / Render compatible</span>
+      <span class="badge">GitHub delivered</span>
+    </div>
+
+    <div style="height:28px;"></div>
+
+    <div class="callout">
+      <div class="ico">⚠️</div>
+      <div class="body">
+        <strong>HOSTING NOT INCLUDED</strong>
+        <p>I write and deliver the bot's code — you'll need your own hosting service to keep it running 24/7. I can point you toward beginner-friendly options and help you get set up.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer id="contact">
+  <div class="wrap">
+    <div class="section-tag">/ GET IN TOUCH</div>
+    <h2>Tell me what your server needs</h2>
+    <p class="section-sub">Pricing depends on complexity — reach out and I'll scope it out with you.</p>
+    <form id="inquiryForm" class="compose-form">
+      <input type="text" id="discordUsername" placeholder="Your Discord username (e.g. yourname or yourname#1234)" required>
+      <input type="text" id="serverName" placeholder="Server name (optional)">
+      <textarea id="projectMsg" placeholder="What do you need built?" required></textarea>
+      <button type="submit" class="send" id="sendBtn">Send</button>
+      <div id="formStatus" class="foot-note" style="margin-top:10px;"></div>
+    </form>
+    <div class="foot-note">This goes straight to my Discord — I'll get back to you there.</div>
+  </div>
+</footer>
+
+<script>
+  const text = "/hire-me";
+  const el = document.getElementById('typedCmd');
+  let i = 0;
+  function type(){
+    if(i <= text.length){
+      el.textContent = text.slice(0, i);
+      i++;
+      setTimeout(type, 90);
+    } else {
+      el.style.animation = 'none';
+      setTimeout(()=>{ el.style.borderRight = 'none'; }, 600);
+    }
+  }
+  type();
+
+  // ---- Contact form -> Discord webhook ----
+  // Paste your webhook URL between the quotes below. Get it from:
+  // Channel Settings -> Integrations -> Webhooks -> New Webhook -> Copy Webhook URL
+  const WEBHOOK_URL = "https://discord.com/api/webhooks/1525018814801117266/Ywpj1T_WuUDtSQeCpSy4ivhMYTAqzxDYu394-Q3xXnpqEKviF0iHjalOXv4y3aTYUVQc";
+
+  // Format check only — this can't confirm the account actually exists (that
+  // would require exposing a bot token in this page, which is unsafe). This just
+  // rejects obviously-fake input. Discord usernames: 2-32 chars, lowercase letters,
+  // numbers, underscores, periods. Also allow the legacy "name#1234" tag format.
+  function looksLikeDiscordUsername(value){
+    const modern = /^[a-z0-9_.]{2,32}$/;
+    const legacy = /^.{2,32}#[0-9]{4}$/;
+    return modern.test(value) || legacy.test(value);
+  }
+
+  const form = document.getElementById('inquiryForm');
+  const statusEl = document.getElementById('formStatus');
+  const sendBtn = document.getElementById('sendBtn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const username = document.getElementById('discordUsername').value.trim();
+    const server = document.getElementById('serverName').value.trim();
+    const message = document.getElementById('projectMsg').value.trim();
+
+    if(!looksLikeDiscordUsername(username)){
+      statusEl.textContent = "That doesn't look like a valid Discord username — check the format (e.g. yourname or yourname#1234).";
+      statusEl.style.color = "var(--red)";
+      return;
+    }
+
+    if(WEBHOOK_URL.includes("PASTE_YOUR_WEBHOOK_URL_HERE")){
+      statusEl.textContent = "Site owner: paste your Discord webhook URL into the code before this goes live.";
+      statusEl.style.color = "var(--yellow)";
+      return;
+    }
+
+    sendBtn.disabled = true;
+    sendBtn.textContent = "Sending...";
+
+    const content = `**${username}**${server ? ` (server: ${server})` : ""}\n${message}`;
+
+    try {
+      const res = await fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content })
+      });
+
+      if(res.ok){
+        form.reset();
+        form.querySelectorAll('input, textarea, button').forEach(el => el.disabled = true);
+        statusEl.textContent = "✅ Sent — please wait until I respond.";
+        statusEl.style.color = "var(--green)";
+      } else {
+        throw new Error("Webhook responded with an error");
+      }
+    } catch (err) {
+      statusEl.textContent = "Something went wrong sending that — try again in a moment.";
+      statusEl.style.color = "var(--red)";
+      sendBtn.disabled = false;
+      sendBtn.textContent = "Send";
+    }
+  });
+</script>
+
+</body>
+</html>
