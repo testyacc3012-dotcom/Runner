@@ -372,17 +372,17 @@
     <button class="k-fn" data-k="AC">AC</button>
     <button class="k-fn" data-k="±">±</button>
     <button class="k-fn" data-k="%">%</button>
-    <button class="k-op" data-k="÷">÷</button>
+    <button class="k-op" data-k="/">&divide;</button>
 
     <button class="k-num" data-k="7">7</button>
     <button class="k-num" data-k="8">8</button>
     <button class="k-num" data-k="9">9</button>
-    <button class="k-op" data-k="×">×</button>
+    <button class="k-op" data-k="x">&times;</button>
 
     <button class="k-num" data-k="4">4</button>
     <button class="k-num" data-k="5">5</button>
     <button class="k-num" data-k="6">6</button>
-    <button class="k-op" data-k="−">−</button>
+    <button class="k-op" data-k="-">&minus;</button>
 
     <button class="k-num" data-k="1">1</button>
     <button class="k-num" data-k="2">2</button>
@@ -433,11 +433,12 @@
   const display = document.getElementById('calcDisplay');
   let expr = '';        // what's shown / evaluated
   let codeBuffer = '';  // consecutive raw digits since last operator/clear
+  const OP_SYMBOL = { '/':'÷', 'x':'×', '-':'−', '+':'+' };
 
   function render(){ display.textContent = expr === '' ? '0' : expr; }
 
   function safeEval(str){
-    const cleaned = str.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-');
+    const cleaned = str.replace(/x/gi,'*');
     if(!/^[0-9+\-*/.%() ]+$/.test(cleaned)) return '0';
     try{
       // eslint-disable-next-line no-new-func
@@ -463,10 +464,10 @@
         return;
       }
 
-      if(['+','−','×','÷','%','±'].includes(k)){
+      if(['+','-','x','/','%','±'].includes(k)){
         codeBuffer = '';
         if(k === '±'){ expr = expr.startsWith('-') ? expr.slice(1) : '-'+expr; }
-        else { expr += k; }
+        else { expr += (OP_SYMBOL[k] || k); }
         render();
         return;
       }
