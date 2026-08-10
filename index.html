@@ -373,7 +373,21 @@
   <div class="snip">✂ ⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯</div>
   <footer>
     Set 4 of 12 · show your work<br><br>
-    <button id="calcOpen" type="button">🖩 calculator</button>
+    <button id="calcOpen" type="button">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:3px;">
+        <rect x="4" y="2" width="16" height="20" rx="2"/>
+        <line x1="8" y1="6" x2="16" y2="6"/>
+        <line x1="8" y1="10" x2="8" y2="10"/>
+        <line x1="12" y1="10" x2="12" y2="10"/>
+        <line x1="16" y1="10" x2="16" y2="10"/>
+        <line x1="8" y1="14" x2="8" y2="14"/>
+        <line x1="12" y1="14" x2="12" y2="14"/>
+        <line x1="16" y1="14" x2="16" y2="14"/>
+        <line x1="8" y1="18" x2="8" y2="18"/>
+        <line x1="12" y1="18" x2="12" y2="18"/>
+        <line x1="16" y1="18" x2="16" y2="18"/>
+      </svg>calculator
+    </button>
   </footer>
 </div>
 
@@ -512,44 +526,58 @@
 
   const SYSTEM_PROMPT = `You are an interactive experience developer. Output ONE complete, self-contained HTML document (inline CSS and JavaScript only, no external libraries, no external assets, no network calls). It must implement a small, actually playable browser-based interactive experience based on the user's description, controllable with touch/click and arrow keys. Respond with ONLY raw HTML starting at <!DOCTYPE html> — no explanations, no markdown code fences, no commentary.`;
 
+  async function callModel(prompt, reasoningEffort){
+    const res = await fetch('https://text.pollinations.ai/openai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'openai',
+        reasoning_effort: reasoningEffort,
+        max_tokens: 4000,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: 'Description: ' + prompt }
+        ]
+      })
+    });
+    const data = await res.json();
+    if(data?.error){ throw new Error(typeof data.error === 'string' ? data.error : (data.error.message || 'API error')); }
+    let code = data?.choices?.[0]?.message?.content || '';
+    code = code.trim().replace(/^```(?:html)?\s*/i, '').replace(/```$/,'').trim();
+    return code;
+  }
+
   async function generateBuild(){
     const prompt = desc.value.trim();
     if(!prompt){ status.textContent = '> enter a description first'; return; }
     genBtn.disabled = true;
-    status.textContent = '> thinking...';
     preview.classList.remove('loaded');
     preview.srcdoc = '';
+
+    let code = '';
     try{
-      const res = await fetch('https://text.pollinations.ai/openai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'openai',
-          reasoning_effort: 'high',
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: 'Description: ' + prompt }
-          ]
-        })
-      });
-      const data = await res.json();
-      let code = data?.choices?.[0]?.message?.content || '';
-      code = code.trim()
-        .replace(/^```(?:html)?\s*/i, '')
-        .replace(/```$/,'')
-        .trim();
+      status.textContent = '> thinking...';
+      code = await callModel(prompt, 'medium');
       if(!code.toLowerCase().includes('<html')){
-        status.textContent = '> build failed, try a simpler description';
-        genBtn.disabled = false;
-        return;
+        status.textContent = '> first attempt incomplete, retrying...';
+        code = await callModel(prompt, 'low');
       }
-      status.textContent = '> compiling...';
-      preview.srcdoc = code;
-      preview.onload = ()=> preview.classList.add('loaded');
-      status.textContent = '> ready';
     }catch(e){
-      status.textContent = '> connection error, try again';
+      status.textContent = '> connection error, try again (' + e.message + ')';
+      genBtn.disabled = false;
+      return;
     }
+
+    if(!code.toLowerCase().includes('<html')){
+      status.textContent = '> build failed twice — try a shorter, simpler description';
+      genBtn.disabled = false;
+      return;
+    }
+
+    status.textContent = '> compiling...';
+    preview.srcdoc = code;
+    preview.onload = ()=> preview.classList.add('loaded');
+    status.textContent = '> ready';
     genBtn.disabled = false;
   }
 
