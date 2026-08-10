@@ -215,7 +215,7 @@
   .k-eq{background:#2A56E8; color:#fff; font-weight:600;}
   .k-eq:active{background:#1f45c4;}
 
-  /* ---------- GAME LAB ---------- */
+  /* ---------- BUILD LAB ---------- */
   #lab{
     display:none;
     min-height:100vh;
@@ -260,7 +260,7 @@
     opacity:.7;
     margin:0 0 26px;
   }
-  #gameDesc{
+  #buildDesc{
     width:100%;
     background:#02100a;
     border:1px solid #1f7a4d;
@@ -273,7 +273,7 @@
     min-height:70px;
     transition:border-color .2s ease, box-shadow .2s ease;
   }
-  #gameDesc:focus{outline:none; border-color:#8cffb0; box-shadow:0 0 0 3px rgba(140,255,176,.15);}
+  #buildDesc:focus{outline:none; border-color:#8cffb0; box-shadow:0 0 0 3px rgba(140,255,176,.15);}
   .lab-actions{
     display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;
   }
@@ -415,17 +415,17 @@
   </div>
 </div>
 
-<!-- ============ GAME LAB ============ -->
+<!-- ============ BUILD LAB ============ -->
 <div id="lab">
-  <div class="lab-title">GAME LAB</div>
-  <p class="lab-sub">describe a game. it gets built. play it below.<span class="cursor"></span></p>
-  <textarea id="gameDesc" placeholder="e.g. a simple flappy-bird style game with a red square dodging green pipes"></textarea>
+  <div class="lab-title">BUILD LAB</div>
+  <p class="lab-sub">describe something. it gets built. try it below.<span class="cursor"></span></p>
+  <textarea id="buildDesc" placeholder="e.g. a simple flappy-bird style thing with a red square dodging green pipes"></textarea>
   <div class="lab-actions">
     <button id="genBtn">GENERATE</button>
     <button id="resetBtn" type="button">reset</button>
   </div>
   <div class="status" id="labStatus"></div>
-  <iframe id="preview" sandbox="allow-scripts" title="game preview"></iframe>
+  <iframe id="preview" sandbox="allow-scripts" title="build preview"></iframe>
 </div>
 
 <script>
@@ -504,27 +504,36 @@
     document.getElementById('lab').classList.add('show');
   }
 
-  // ---------- game generator ----------
+  // ---------- build generator ----------
   const genBtn = document.getElementById('genBtn');
-  const desc = document.getElementById('gameDesc');
+  const desc = document.getElementById('buildDesc');
   const status = document.getElementById('labStatus');
   const preview = document.getElementById('preview');
 
-  const SYSTEM_PROMPT = `You are a game developer. Output ONE complete, self-contained HTML document (inline CSS and JavaScript only, no external libraries, no external assets, no network calls). It must implement a small, actually playable browser game based on the user's description, controllable with touch/click and arrow keys. Respond with ONLY raw HTML starting at <!DOCTYPE html> — no explanations, no markdown code fences, no commentary.`;
+  const SYSTEM_PROMPT = `You are an interactive experience developer. Output ONE complete, self-contained HTML document (inline CSS and JavaScript only, no external libraries, no external assets, no network calls). It must implement a small, actually playable browser-based interactive experience based on the user's description, controllable with touch/click and arrow keys. Respond with ONLY raw HTML starting at <!DOCTYPE html> — no explanations, no markdown code fences, no commentary.`;
 
-  async function generateGame(){
+  async function generateBuild(){
     const prompt = desc.value.trim();
     if(!prompt){ status.textContent = '> enter a description first'; return; }
     genBtn.disabled = true;
-    status.textContent = '> compiling...';
+    status.textContent = '> thinking...';
     preview.classList.remove('loaded');
     preview.srcdoc = '';
     try{
-      const url = 'https://text.pollinations.ai/' +
-        encodeURIComponent(SYSTEM_PROMPT + '\n\nGame description: ' + prompt) +
-        '?model=openai';
-      const res = await fetch(url);
-      let code = await res.text();
+      const res = await fetch('https://text.pollinations.ai/openai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'openai',
+          reasoning_effort: 'high',
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: 'Description: ' + prompt }
+          ]
+        })
+      });
+      const data = await res.json();
+      let code = data?.choices?.[0]?.message?.content || '';
       code = code.trim()
         .replace(/^```(?:html)?\s*/i, '')
         .replace(/```$/,'')
@@ -534,6 +543,7 @@
         genBtn.disabled = false;
         return;
       }
+      status.textContent = '> compiling...';
       preview.srcdoc = code;
       preview.onload = ()=> preview.classList.add('loaded');
       status.textContent = '> ready';
@@ -543,7 +553,7 @@
     genBtn.disabled = false;
   }
 
-  genBtn.addEventListener('click', generateGame);
+  genBtn.addEventListener('click', generateBuild);
   document.getElementById('resetBtn').addEventListener('click', ()=>{
     desc.value=''; preview.srcdoc=''; status.textContent=''; preview.classList.remove('loaded');
   });
