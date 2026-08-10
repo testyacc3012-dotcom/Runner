@@ -155,53 +155,65 @@
   /* ---------- CALCULATOR ---------- */
   #calc{
     position:fixed; inset:0;
-    background:radial-gradient(circle at 50% 0%, #1c1c1e 0%, #000 70%);
+    background:#F7F9FF;
     display:none;
     flex-direction:column;
-    justify-content:flex-end;
+    padding:18px 14px 24px;
     z-index:50;
     opacity:0;
     transform:translateY(14px);
     transition:opacity .25s ease, transform .25s ease;
   }
   #calc.show{display:flex; opacity:1; transform:translateY(0);}
+  .calc-card{
+    background:#fff;
+    border:1px solid #E4E8F5;
+    border-radius:22px;
+    padding:18px 20px;
+    height:120px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    margin-bottom:16px;
+    box-shadow:0 2px 10px rgba(30,50,120,.05);
+  }
+  .calc-history{color:#8891A8;}
   .calc-display{
-    color:#fff;
+    color:#1B1F2A;
     font-family:-apple-system,'SF Pro Display',system-ui,sans-serif;
-    font-weight:200;
-    font-size:min(15vw,72px);
+    font-weight:400;
+    font-size:min(13vw,52px);
     font-variant-numeric:tabular-nums;
     text-align:right;
-    padding:0 24px 18px;
     letter-spacing:-1px;
     overflow:hidden;
     white-space:nowrap;
-    text-shadow:0 0 24px rgba(255,255,255,.15);
     transition:opacity .1s ease;
   }
   .calc-grid{
     display:grid;
     grid-template-columns:repeat(4,1fr);
-    gap:12px;
-    padding:0 12px 28px;
+    grid-template-rows:repeat(5,1fr);
+    gap:10px;
+    flex:1;
   }
   .calc-grid button{
-    aspect-ratio:1.6/1;
     border-radius:999px;
     border:none;
-    font-size:clamp(20px,6vw,28px);
+    font-size:clamp(18px,5.5vw,24px);
     font-family:-apple-system,system-ui,sans-serif;
     cursor:pointer;
     transition:transform .08s ease, filter .08s ease;
   }
-  .calc-grid button:active{transform:scale(.9);}
-  .k-num{background:#333; color:#fff;}
-  .k-num:active{background:#555;}
-  .k-fn{background:#a5a5a5; color:#000;}
-  .k-fn:active{background:#c8c8c8;}
-  .k-op{background:#ff9500; color:#fff; font-weight:600;}
-  .k-op:active{background:#ffb143; filter:brightness(1.1);}
-  .k-zero{grid-column:span 2; border-radius:999px; text-align:left; padding-left:28px;}
+  .calc-grid button:active{transform:scale(.92);}
+  .k-num{background:#F1F2F7; color:#1B1F2A;}
+  .k-num:active{background:#E4E6EF;}
+  .k-fn{background:#E3E8FD; color:#2547D0;}
+  .k-fn:active{background:#d2d9fb;}
+  .k-op{background:#E3E8FD; color:#2547D0; font-weight:600;}
+  .k-op:active{background:#d2d9fb;}
+  .k-eq{background:#2A56E8; color:#fff; font-weight:600;}
+  .k-eq:active{background:#1f45c4;}
 
   /* ---------- GAME LAB ---------- */
   #lab{
@@ -367,31 +379,39 @@
 
 <!-- ============ CALCULATOR ============ -->
 <div id="calc">
-  <div class="calc-display" id="calcDisplay">0</div>
+  <div class="calc-card">
+    <svg class="calc-history" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 3v5h5"/>
+      <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/>
+      <path d="M12 7v5l4 2"/>
+    </svg>
+    <div class="calc-display" id="calcDisplay">0</div>
+  </div>
   <div class="calc-grid">
-    <button class="k-fn" data-k="AC">AC</button>
-    <button class="k-fn" data-k="±">±</button>
+    <button class="k-fn" data-k="(">(</button>
+    <button class="k-fn" data-k=")">)</button>
     <button class="k-fn" data-k="%">%</button>
-    <button class="k-op" data-k="/">&divide;</button>
+    <button class="k-fn" data-k="AC">AC</button>
 
     <button class="k-num" data-k="7">7</button>
     <button class="k-num" data-k="8">8</button>
     <button class="k-num" data-k="9">9</button>
-    <button class="k-op" data-k="x">&times;</button>
+    <button class="k-op" data-k="/">&divide;</button>
 
     <button class="k-num" data-k="4">4</button>
     <button class="k-num" data-k="5">5</button>
     <button class="k-num" data-k="6">6</button>
-    <button class="k-op" data-k="-">&minus;</button>
+    <button class="k-op" data-k="x">&times;</button>
 
     <button class="k-num" data-k="1">1</button>
     <button class="k-num" data-k="2">2</button>
     <button class="k-num" data-k="3">3</button>
-    <button class="k-op" data-k="+">+</button>
+    <button class="k-op" data-k="-">&minus;</button>
 
-    <button class="k-num k-zero" data-k="0">0</button>
+    <button class="k-num" data-k="0">0</button>
     <button class="k-num" data-k=".">.</button>
-    <button class="k-op" data-k="=">=</button>
+    <button class="k-eq" data-k="=">=</button>
+    <button class="k-op" data-k="+">+</button>
   </div>
 </div>
 
@@ -464,10 +484,9 @@
         return;
       }
 
-      if(['+','-','x','/','%','±'].includes(k)){
+      if(['+','-','x','/','%','(',')'].includes(k)){
         codeBuffer = '';
-        if(k === '±'){ expr = expr.startsWith('-') ? expr.slice(1) : '-'+expr; }
-        else { expr += (OP_SYMBOL[k] || k); }
+        expr += (OP_SYMBOL[k] || k);
         render();
         return;
       }
