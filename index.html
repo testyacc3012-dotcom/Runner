@@ -1,795 +1,143 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>Block Blast</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --bg-1: #2b3467;
-    --bg-2: #1a1f3d;
-    --board-bg: #232a52;
-    --cell-empty: #171b34;
-    --cell-empty-hi: #1f2545;
-    --panel: #222a55;
-    --text: #f3f1ea;
-    --text-dim: #a6acd6;
-    --gold: #f4b740;
-    --gold-d: #b9820e;
-    --blue: #4c7ef3;
-    --blue-d: #2952b8;
-    --orange: #f2894e;
-    --orange-d: #b7551f;
-    --purple: #a365e0;
-    --purple-d: #6f36a8;
-    --cyan: #4fc3e0;
-    --cyan-d: #2590ac;
-    --green: #57c26a;
-    --green-d: #2c8c3d;
-    --red: #e85d5d;
-    --red-d: #ab2c2c;
-    --cell: min(10.2vmin, 52px);
-    --tray-cell: min(6.6vmin, 34px);
-  }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Finger Detector</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #111;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+      color: white;
+    }
 
-  *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
-  html,body{
-    margin:0; padding:0; width:100%; min-height:100%;
-    background: radial-gradient(120% 100% at 50% 0%, var(--bg-1), var(--bg-2));
-    color: var(--text);
-    font-family: 'Nunito', sans-serif;
-    overflow-x: hidden;
-    user-select: none;
-    touch-action: none;
-  }
+    #container {
+      position: relative;
+      width: 640px;
+      height: 480px;
+      border: 3px solid #333;
+      border-radius: 12px;
+      overflow: hidden;
+    }
 
-  .wrap{
-    max-width: 560px;
-    margin: 0 auto;
-    min-height: 100vh;
-    padding: 22px 16px 40px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
+    video {
+      width: 640px;
+      height: 480px;
+      transform: scaleX(-1); /* Mirror camera feed */
+    }
 
-  /* ---------- header ---------- */
-  .topbar{
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 6px;
-  }
-  .brand{
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .brand__dot{
-    width: 14px; height: 14px; border-radius: 4px;
-    background: linear-gradient(135deg, var(--gold), var(--orange));
-    box-shadow: 0 0 10px rgba(244,183,64,0.6);
-    transform: rotate(8deg);
-  }
-  .brand__name{
-    font-family: 'Baloo 2', sans-serif;
-    font-weight: 700;
-    font-size: 15px;
-    letter-spacing: 0.04em;
-    color: var(--text-dim);
-    text-transform: uppercase;
-  }
-  .newgame-btn{
-    background: var(--panel);
-    border: 1px solid rgba(255,255,255,0.08);
-    color: var(--text-dim);
-    font-family: 'Nunito', sans-serif;
-    font-weight: 700;
-    font-size: 12px;
-    padding: 8px 12px;
-    border-radius: 9px;
-    cursor: pointer;
-  }
-  .newgame-btn:hover{ color: var(--text); border-color: rgba(255,255,255,0.2); }
+    /* Green Box Overlay */
+    #box {
+      position: absolute;
+      top: 140px;
+      left: 220px;
+      width: 200px;
+      height: 200px;
+      background-color: rgba(0, 255, 0, 0.4); /* Half-transparent Green */
+      border: 3px solid #00ff00;
+      border-radius: 10px;
+      transition: background-color 0.2s, border-color 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 18px;
+      pointer-events: none;
+    }
 
-  .scoreboard{
-    width: 100%;
-    display: flex;
-    gap: 10px;
-    margin: 10px 0 18px;
-  }
-  .score-card{
-    flex: 1;
-    background: linear-gradient(180deg, var(--panel), rgba(34,42,85,0.6));
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 14px;
-    padding: 10px 14px;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-  }
-  .score-card--main{ flex: 1.4; }
-  .score-card__label{
-    font-size: 10px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    font-weight: 700;
-  }
-  .score-card__value{
-    font-family: 'Baloo 2', sans-serif;
-    font-weight: 800;
-    font-size: 30px;
-    line-height: 1.25;
-    color: var(--text);
-  }
-  .score-card--main .score-card__value{
-    background: linear-gradient(135deg, var(--gold), #ffe1a1);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
+    /* Red Box when finger is inside */
+    #box.active {
+      background-color: rgba(255, 0, 0, 0.6); /* Half-transparent Red */
+      border-color: #ff0000;
+    }
+  </style>
 
-  /* ---------- board ---------- */
-  .board-shell{
-    position: relative;
-    padding: 14px;
-    background: linear-gradient(180deg, #33396a, #262c54);
-    border-radius: 20px;
-    box-shadow: 0 14px 34px rgba(10,12,30,0.55), inset 0 1px 0 rgba(255,255,255,0.06);
-  }
-  .board{
-    position: relative;
-    display: grid;
-    grid-template-columns: repeat(8, var(--cell));
-    grid-template-rows: repeat(8, var(--cell));
-    gap: 3px;
-    background: var(--board-bg);
-    padding: 8px;
-    border-radius: 12px;
-  }
-  .cell{
-    position: relative;
-    width: var(--cell);
-    height: var(--cell);
-    border-radius: 6px;
-    background: var(--cell-empty);
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), inset 0 2px 4px rgba(0,0,0,0.35);
-    transition: background 0.08s ease;
-  }
-  .cell.preview-valid{ background: rgba(255,255,255,0.14); }
-  .cell.preview-invalid{ background: rgba(232,93,93,0.28); }
-  .cell.clearing{ animation: cellClear 0.32s ease forwards; }
-  @keyframes cellClear{
-    0%{ transform: scale(1); filter: brightness(2); }
-    100%{ transform: scale(0.15); filter: brightness(2.6); opacity: 0; }
-  }
-
-  .block{
-    position: absolute;
-    inset: 0;
-    border-radius: 6px;
-  }
-  .block::before{
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 6px;
-    box-shadow:
-      inset 0 3px 0 rgba(255,255,255,0.45),
-      inset 0 -4px 0 rgba(0,0,0,0.22),
-      inset 3px 0 0 rgba(255,255,255,0.18),
-      inset -3px 0 0 rgba(0,0,0,0.14);
-  }
-
-  .blk-gold{ background: linear-gradient(155deg, #ffd876, var(--gold) 55%, var(--gold-d)); }
-  .blk-blue{ background: linear-gradient(155deg, #8fb0ff, var(--blue) 55%, var(--blue-d)); }
-  .blk-orange{ background: linear-gradient(155deg, #ffb488, var(--orange) 55%, var(--orange-d)); }
-  .blk-purple{ background: linear-gradient(155deg, #cf9ef2, var(--purple) 55%, var(--purple-d)); }
-  .blk-cyan{ background: linear-gradient(155deg, #a4e8f7, var(--cyan) 55%, var(--cyan-d)); }
-  .blk-green{ background: linear-gradient(155deg, #96e2a4, var(--green) 55%, var(--green-d)); }
-  .blk-red{ background: linear-gradient(155deg, #f79b9b, var(--red) 55%, var(--red-d)); }
-
-  /* ---------- floating combo text ---------- */
-  .float-pop{
-    position: absolute;
-    left: 50%; top: 40%;
-    transform: translate(-50%, 0);
-    font-family: 'Baloo 2', sans-serif;
-    font-weight: 800;
-    font-size: 26px;
-    color: #ffe19c;
-    text-shadow: 0 3px 10px rgba(0,0,0,0.5);
-    pointer-events: none;
-    animation: popFade 0.85s ease forwards;
-    z-index: 30;
-    white-space: nowrap;
-  }
-  @keyframes popFade{
-    0%{ opacity: 0; transform: translate(-50%, 12px) scale(0.7); }
-    25%{ opacity: 1; transform: translate(-50%, -6px) scale(1.08); }
-    75%{ opacity: 1; transform: translate(-50%, -14px) scale(1); }
-    100%{ opacity: 0; transform: translate(-50%, -30px) scale(1); }
-  }
-
-  /* ---------- tray ---------- */
-  .tray{
-    width: 100%;
-    margin-top: 22px;
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    min-height: calc(var(--tray-cell) * 5 + 20px);
-  }
-  .tray-slot{
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: calc(var(--tray-cell) * 4);
-    min-height: calc(var(--tray-cell) * 4);
-  }
-  .piece{
-    position: relative;
-    display: grid;
-    gap: 2px;
-    cursor: grab;
-    transition: opacity 0.15s ease, transform 0.15s ease;
-  }
-  .piece.dragging{ opacity: 0.25; }
-  .piece.empty{ opacity: 0; pointer-events: none; }
-  .piece .block{ position: static; width: var(--tray-cell); height: var(--tray-cell); }
-  .piece-cell{ width: var(--tray-cell); height: var(--tray-cell); position: relative; }
-  .piece-cell.filled .block{ position:absolute; inset:0; }
-
-  .drag-ghost{
-    position: fixed;
-    top: 0; left: 0;
-    display: grid;
-    gap: 3px;
-    pointer-events: none;
-    z-index: 100;
-    opacity: 0.92;
-    filter: drop-shadow(0 10px 16px rgba(0,0,0,0.45));
-  }
-  .drag-ghost .block{ position: static; }
-  .drag-ghost.invalid .block{ filter: grayscale(0.35) saturate(0.6); }
-
-  /* ---------- overlay ---------- */
-  .overlay{
-    position: fixed; inset: 0;
-    background: rgba(15, 18, 38, 0.82);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 200;
-    opacity: 0; pointer-events: none;
-    transition: opacity 0.25s ease;
-  }
-  .overlay.show{ opacity: 1; pointer-events: auto; }
-  .overlay__card{
-    background: linear-gradient(180deg, #2c3363, #1c2246);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 20px;
-    padding: 30px 34px;
-    text-align: center;
-    max-width: 320px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-  }
-  .overlay__title{
-    font-family: 'Baloo 2', sans-serif;
-    font-weight: 800;
-    font-size: 26px;
-    margin: 0 0 6px;
-  }
-  .overlay__sub{ color: var(--text-dim); font-size: 13px; margin: 0 0 18px; }
-  .overlay__score{
-    font-family: 'Baloo 2', sans-serif;
-    font-weight: 800;
-    font-size: 44px;
-    background: linear-gradient(135deg, var(--gold), #ffe1a1);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-    margin-bottom: 4px;
-  }
-  .overlay__best{ font-size: 12px; color: var(--text-dim); margin-bottom: 22px; }
-  .overlay__btn{
-    background: linear-gradient(135deg, var(--gold), var(--orange));
-    border: none;
-    color: #24160a;
-    font-family: 'Baloo 2', sans-serif;
-    font-weight: 700;
-    font-size: 15px;
-    padding: 12px 30px;
-    border-radius: 12px;
-    cursor: pointer;
-    box-shadow: 0 8px 18px rgba(244,183,64,0.3);
-  }
-  .overlay__btn:active{ transform: scale(0.97); }
-
-  .hint{
-    margin-top: 16px;
-    font-size: 11.5px;
-    color: var(--text-dim);
-    text-align: center;
-    max-width: 320px;
-    line-height: 1.5;
-  }
-
-  @media (prefers-reduced-motion: reduce){
-    .cell.clearing, .float-pop{ animation: none !important; }
-  }
-</style>
+  <!-- Free AI Hand Tracking Libraries from MediaPipe -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 </head>
 <body>
 
-<div class="wrap">
-
-  <div class="topbar">
-    <div class="brand">
-      <div class="brand__dot"></div>
-      <div class="brand__name">Block Blast</div>
-    </div>
-    <button class="newgame-btn" id="newGameBtn">New Game</button>
+  <h1>Finger Detector</h1>
+  <div id="container">
+    <video id="webcam" autoplay playsinline></video>
+    <div id="box">Put Finger Here</div>
   </div>
 
-  <div class="scoreboard">
-    <div class="score-card score-card--main">
-      <div class="score-card__label">Score</div>
-      <div class="score-card__value" id="scoreVal">0</div>
-    </div>
-    <div class="score-card">
-      <div class="score-card__label">Best</div>
-      <div class="score-card__value" id="bestVal">0</div>
-    </div>
-  </div>
+  <script>
+    const videoElement = document.getElementById('webcam');
+    const boxElement = document.getElementById('box');
 
-  <div class="board-shell">
-    <div class="board" id="board"></div>
-  </div>
+    // Box position and size (matching CSS)
+    const boxX = 220;
+    const boxY = 140;
+    const boxWidth = 200;
+    const boxHeight = 200;
 
-  <div class="tray" id="tray">
-    <div class="tray-slot" data-slot="0"></div>
-    <div class="tray-slot" data-slot="1"></div>
-    <div class="tray-slot" data-slot="2"></div>
-  </div>
-
-  <p class="hint">Drag a piece onto the grid. Fill a full row or column to clear it. Game ends when none of your three pieces fit.</p>
-
-</div>
-
-<div class="overlay" id="overlay">
-  <div class="overlay__card">
-    <h2 class="overlay__title">No moves left</h2>
-    <p class="overlay__sub">None of your pieces fit on the board.</p>
-    <div class="overlay__score" id="finalScore">0</div>
-    <div class="overlay__best" id="finalBest">Best: 0</div>
-    <button class="overlay__btn" id="restartBtn">Play again</button>
-  </div>
-</div>
-
-<script>
-(() => {
-  'use strict';
-
-  // =====================================================================
-  // Config
-  // =====================================================================
-  const SIZE = 8;
-  const COLORS = ['gold','blue','orange','purple','cyan','green','red'];
-  const STORAGE_BEST = 'block-blast-best';
-
-  // Shape library: arrays of [row, col] offsets, normalized to start at 0,0.
-  // Weighted pools: smaller/medium shapes appear more often than big ones.
-  const SHAPES_COMMON = [
-    [[0,0]],
-    [[0,0],[0,1]],
-    [[0,0],[1,0]],
-    [[0,0],[0,1],[0,2]],
-    [[0,0],[1,0],[2,0]],
-    [[0,0],[0,1],[1,0],[1,1]], // 2x2
-    [[0,0],[1,0],[1,1]],
-    [[0,0],[0,1],[1,0]],
-    [[0,1],[1,0],[1,1]],
-    [[0,0],[0,1],[1,1]],
-    [[0,0],[0,1],[0,2],[0,3]],
-    [[0,0],[1,0],[2,0],[3,0]],
-    [[0,0],[1,0],[2,0],[2,1]],
-    [[0,0],[0,1],[0,2],[1,0]],
-    [[0,0],[0,1],[1,1],[2,1]],
-    [[1,0],[1,1],[1,2],[0,2]],
-    [[0,1],[1,1],[2,0],[2,1]],
-    [[0,0],[1,0],[1,1],[1,2]],
-    [[0,0],[0,1],[1,0],[2,0]],
-    [[0,0],[0,1],[0,2],[1,2]],
-    [[0,0],[0,1],[0,2],[1,1]],
-    [[0,0],[1,0],[2,0],[1,1]],
-    [[1,0],[1,1],[1,2],[0,1]],
-    [[0,1],[1,0],[1,1],[2,1]],
-    [[0,1],[0,2],[1,0],[1,1]],
-    [[0,0],[0,1],[1,1],[1,2]],
-    [[0,0],[1,0],[1,1],[2,1]],
-    [[0,1],[1,0],[1,1],[2,0]],
-  ];
-  const SHAPES_BIG = [
-    [[0,0],[0,1],[0,2],[0,3],[0,4]],
-    [[0,0],[1,0],[2,0],[3,0],[4,0]],
-    [[0,1],[1,0],[1,1],[1,2],[2,1]], // plus
-    [[0,0],[0,1],[0,2],[1,0],[2,0]], // big corner
-    [[0,0],[0,1],[0,2],[1,2],[2,2]],
-    [[2,0],[2,1],[2,2],[1,2],[0,2]],
-    [[0,0],[1,0],[2,0],[2,1],[2,2]],
-    [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]], // 3x3
-  ];
-
-  function pickShape(){
-    // ~78% common, ~22% big
-    const pool = Math.random() < 0.78 ? SHAPES_COMMON : SHAPES_BIG;
-    return pool[Math.floor(Math.random() * pool.length)];
-  }
-  function pickColor(){ return COLORS[Math.floor(Math.random() * COLORS.length)]; }
-
-  function makePiece(){
-    return { shape: pickShape(), color: pickColor() };
-  }
-
-  // =====================================================================
-  // State
-  // =====================================================================
-  let grid = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
-  let tray = [makePiece(), makePiece(), makePiece()];
-  let score = 0;
-  let best = parseInt(localStorage.getItem(STORAGE_BEST) || '0', 10);
-  let combo = 0; // consecutive placements that cleared at least one line
-  let gameOver = false;
-
-  // =====================================================================
-  // DOM refs
-  // =====================================================================
-  const boardEl = document.getElementById('board');
-  const trayEl = document.getElementById('tray');
-  const scoreValEl = document.getElementById('scoreVal');
-  const bestValEl = document.getElementById('bestVal');
-  const overlayEl = document.getElementById('overlay');
-  const finalScoreEl = document.getElementById('finalScore');
-  const finalBestEl = document.getElementById('finalBest');
-
-  bestValEl.textContent = best;
-
-  // Build 8x8 cell divs once
-  const cellEls = [];
-  for (let r = 0; r < SIZE; r++) {
-    const row = [];
-    for (let c = 0; c < SIZE; c++) {
-      const cell = document.createElement('div');
-      cell.className = 'cell';
-      cell.dataset.r = r;
-      cell.dataset.c = c;
-      boardEl.appendChild(cell);
-      row.push(cell);
-    }
-    cellEls.push(row);
-  }
-
-  function blockClass(color){ return 'block blk-' + color; }
-
-  function renderGrid() {
-    for (let r = 0; r < SIZE; r++) {
-      for (let c = 0; c < SIZE; c++) {
-        const cell = cellEls[r][c];
-        const color = grid[r][c];
-        cell.innerHTML = '';
-        if (color) {
-          const b = document.createElement('div');
-          b.className = blockClass(color);
-          cell.appendChild(b);
-        }
-      }
-    }
-  }
-
-  function shapeBounds(shape) {
-    let maxR = 0, maxC = 0;
-    shape.forEach(([r, c]) => { maxR = Math.max(maxR, r); maxC = Math.max(maxC, c); });
-    return { rows: maxR + 1, cols: maxC + 1 };
-  }
-
-  function renderTray() {
-    trayEl.querySelectorAll('.tray-slot').forEach((slotEl, i) => {
-      slotEl.innerHTML = '';
-      const piece = tray[i];
-      if (!piece) return;
-      const { rows, cols } = shapeBounds(piece.shape);
-      const pieceEl = document.createElement('div');
-      pieceEl.className = 'piece';
-      pieceEl.style.gridTemplateColumns = `repeat(${cols}, var(--tray-cell))`;
-      pieceEl.style.gridTemplateRows = `repeat(${rows}, var(--tray-cell))`;
-      pieceEl.dataset.slot = i;
-
-      const filled = new Set(piece.shape.map(([r, c]) => r + ',' + c));
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          const cellEl = document.createElement('div');
-          cellEl.className = 'piece-cell';
-          if (filled.has(r + ',' + c)) {
-            cellEl.classList.add('filled');
-            const b = document.createElement('div');
-            b.className = blockClass(piece.color);
-            cellEl.appendChild(b);
-          }
-          pieceEl.appendChild(cellEl);
-        }
-      }
-      slotEl.appendChild(pieceEl);
-      pieceEl.addEventListener('pointerdown', (e) => onPieceGrab(e, i));
+    // Initialize MediaPipe AI Hands
+    const hands = new Hands({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
     });
-  }
 
-  function updateScoreUI() {
-    scoreValEl.textContent = score;
-    bestValEl.textContent = best;
-  }
+    hands.setOptions({
+      maxNumHands: 1,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
 
-  // =====================================================================
-  // Placement validation / commit
-  // =====================================================================
-  function canPlace(shape, r0, c0) {
-    for (const [dr, dc] of shape) {
-      const r = r0 + dr, c = c0 + dc;
-      if (r < 0 || r >= SIZE || c < 0 || c >= SIZE) return false;
-      if (grid[r][c]) return false;
-    }
-    return true;
-  }
+    // Check hand positions on every camera frame
+    hands.onResults((results) => {
+      let isInside = false;
 
-  function canPlaceAnywhere(shape) {
-    for (let r = 0; r < SIZE; r++) {
-      for (let c = 0; c < SIZE; c++) {
-        if (canPlace(shape, r, c)) return true;
-      }
-    }
-    return false;
-  }
+      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        const landmarks = results.multiHandLandmarks[0];
+        
+        // Landmark 8 is the Index Finger Tip
+        const indexFingerTip = landmarks[8];
 
-  function hasAnyMove() {
-    return tray.some((p) => p && canPlaceAnywhere(p.shape));
-  }
+        // Convert camera coordinates to pixel coordinates (flipping X for mirrored feed)
+        const fingerX = (1 - indexFingerTip.x) * 640;
+        const fingerY = indexFingerTip.y * 480;
 
-  function placePiece(shape, color, r0, c0) {
-    shape.forEach(([dr, dc]) => { grid[r0 + dr][c0 + dc] = color; });
-  }
-
-  function findFullLines() {
-    const rows = [];
-    const cols = [];
-    for (let r = 0; r < SIZE; r++) {
-      if (grid[r].every((v) => v)) rows.push(r);
-    }
-    for (let c = 0; c < SIZE; c++) {
-      let full = true;
-      for (let r = 0; r < SIZE; r++) if (!grid[r][c]) { full = false; break; }
-      if (full) cols.push(c);
-    }
-    return { rows, cols };
-  }
-
-  function clearLines(rows, cols) {
-    rows.forEach((r) => { for (let c = 0; c < SIZE; c++) cellEls[r][c].classList.add('clearing'); });
-    cols.forEach((c) => { for (let r = 0; r < SIZE; r++) cellEls[r][c].classList.add('clearing'); });
-
-    setTimeout(() => {
-      rows.forEach((r) => { for (let c = 0; c < SIZE; c++) grid[r][c] = null; });
-      cols.forEach((c) => { for (let r = 0; r < SIZE; r++) grid[r][c] = null; });
-      renderGrid();
-    }, 260);
-  }
-
-  function popText(text) {
-    const el = document.createElement('div');
-    el.className = 'float-pop';
-    el.textContent = text;
-    document.querySelector('.board-shell').appendChild(el);
-    setTimeout(() => el.remove(), 900);
-  }
-
-  const COMBO_LABELS = { 1: 'Line Clear', 2: 'Double Clear!', 3: 'Triple Clear!', 4: 'QUAD CLEAR!' };
-
-  function afterPlacement(shape) {
-    const cellsPlaced = shape.length;
-    score += cellsPlaced;
-
-    const { rows, cols } = findFullLines();
-    const lineCount = rows.length + cols.length;
-
-    if (lineCount > 0) {
-      combo += 1;
-      const base = lineCount * 10 * lineCount;
-      const comboBonus = combo > 1 ? Math.round(base * 0.25 * (combo - 1)) : 0;
-      const gained = base + comboBonus;
-      score += gained;
-      clearLines(rows, cols);
-      let label = COMBO_LABELS[lineCount] || (lineCount + 'x Clear!');
-      if (combo > 1) label += `  combo x${combo}`;
-      popText('+' + gained + '  ' + label);
-    } else {
-      combo = 0;
-    }
-
-    if (score > best) {
-      best = score;
-      localStorage.setItem(STORAGE_BEST, String(best));
-    }
-    updateScoreUI();
-  }
-
-  function refillTrayIfNeeded() {
-    if (tray.every((p) => p === null)) {
-      tray = [makePiece(), makePiece(), makePiece()];
-    }
-    renderTray();
-  }
-
-  function checkGameOver() {
-    if (!hasAnyMove()) {
-      gameOver = true;
-      finalScoreEl.textContent = score;
-      finalBestEl.textContent = 'Best: ' + best;
-      overlayEl.classList.add('show');
-    }
-  }
-
-  // =====================================================================
-  // Drag & drop (pointer events, works for mouse + touch)
-  // =====================================================================
-  let drag = null; // { slot, shape, color, ghostEl, cellsEls: [], anchorOffsetX/Y, cellSize }
-
-  function clearPreview() {
-    for (let r = 0; r < SIZE; r++) {
-      for (let c = 0; c < SIZE; c++) {
-        cellEls[r][c].classList.remove('preview-valid', 'preview-invalid');
-      }
-    }
-  }
-
-  function onPieceGrab(e, slotIndex) {
-    if (gameOver) return;
-    const piece = tray[slotIndex];
-    if (!piece) return;
-    e.preventDefault();
-
-    const pieceEl = e.currentTarget;
-    pieceEl.setPointerCapture && pieceEl.setPointerCapture(e.pointerId);
-
-    const { rows, cols } = shapeBounds(piece.shape);
-    const boardRect = boardEl.getBoundingClientRect();
-    const cellSize = boardRect.width / SIZE;
-
-    const ghost = document.createElement('div');
-    ghost.className = 'drag-ghost';
-    ghost.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
-    ghost.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
-    const filled = new Set(piece.shape.map(([r, c]) => r + ',' + c));
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const d = document.createElement('div');
-        d.style.width = cellSize + 'px';
-        d.style.height = cellSize + 'px';
-        if (filled.has(r + ',' + c)) {
-          const b = document.createElement('div');
-          b.className = blockClass(piece.color);
-          b.style.borderRadius = '6px';
-          d.appendChild(b);
+        // Check if finger is inside the target box coordinates
+        if (
+          fingerX >= boxX &&
+          fingerX <= boxX + boxWidth &&
+          fingerY >= boxY &&
+          fingerY <= boxY + boxHeight
+        ) {
+          isInside = true;
         }
-        ghost.appendChild(d);
       }
-    }
-    document.body.appendChild(ghost);
 
-    const lift = e.pointerType === 'touch' ? cellSize * 1.7 : cellSize * 0.4;
-
-    pieceEl.classList.add('dragging');
-
-    drag = {
-      slotIndex, piece, rows, cols, ghost, cellSize, boardRect, lift,
-      pieceEl,
-      valid: false, targetR: -1, targetC: -1,
-    };
-
-    positionGhost(e.clientX, e.clientY);
-    updatePreview(e.clientX, e.clientY);
-
-    window.addEventListener('pointermove', onDragMove);
-    window.addEventListener('pointerup', onDragEnd);
-    window.addEventListener('pointercancel', onDragEnd);
-  }
-
-  function positionGhost(x, y) {
-    const { ghost, cellSize, rows, cols, lift } = drag;
-    const w = cols * cellSize + (cols - 1) * 3;
-    const h = rows * cellSize + (rows - 1) * 3;
-    ghost.style.left = (x - w / 2) + 'px';
-    ghost.style.top = (y - h - lift + cellSize) + 'px';
-  }
-
-  function updatePreview(x, y) {
-    const { piece, rows, cols, cellSize, boardRect } = drag;
-    // Derive the target grid cell from the ghost's current visual top-left.
-    const ghostRect = drag.ghost.getBoundingClientRect();
-    const localX = ghostRect.left - boardRect.left;
-    const localY = ghostRect.top - boardRect.top;
-    let c0 = Math.round(localX / cellSize);
-    let r0 = Math.round(localY / cellSize);
-    c0 = Math.max(0, Math.min(SIZE - cols, c0));
-    r0 = Math.max(0, Math.min(SIZE - rows, r0));
-
-    clearPreview();
-    const valid = canPlace(piece.shape, r0, c0);
-    piece.shape.forEach(([dr, dc]) => {
-      const r = r0 + dr, c = c0 + dc;
-      if (r >= 0 && r < SIZE && c >= 0 && c < SIZE) {
-        cellEls[r][c].classList.add(valid ? 'preview-valid' : 'preview-invalid');
+      // Turn box Red if finger is inside, otherwise Green
+      if (isInside) {
+        boxElement.classList.add('active');
+        boxElement.innerText = "FINGER DETECTED!";
+      } else {
+        boxElement.classList.remove('active');
+        boxElement.innerText = "Put Finger Here";
       }
     });
-    drag.ghost.classList.toggle('invalid', !valid);
-    drag.valid = valid;
-    drag.targetR = r0;
-    drag.targetC = c0;
-  }
 
-  function onDragMove(e) {
-    if (!drag) return;
-    positionGhost(e.clientX, e.clientY);
-    updatePreview(e.clientX, e.clientY);
-  }
+    // Start Webcam
+    const camera = new Camera(videoElement, {
+      onFrame: async () => {
+        await hands.send({ image: videoElement });
+      },
+      width: 640,
+      height: 480
+    });
 
-  function onDragEnd(e) {
-    if (!drag) return;
-    const { slotIndex, piece, ghost, pieceEl, valid, targetR, targetC } = drag;
-
-    clearPreview();
-    ghost.remove();
-    pieceEl.classList.remove('dragging');
-    window.removeEventListener('pointermove', onDragMove);
-    window.removeEventListener('pointerup', onDragEnd);
-    window.removeEventListener('pointercancel', onDragEnd);
-    drag = null;
-
-    if (valid) {
-      placePiece(piece.shape, piece.color, targetR, targetC);
-      tray[slotIndex] = null;
-      renderGrid();
-      renderTray();
-      afterPlacement(piece.shape);
-      refillTrayIfNeeded();
-      setTimeout(checkGameOver, 300);
-    }
-  }
-
-  // =====================================================================
-  // New game / restart
-  // =====================================================================
-  function newGame() {
-    grid = Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
-    tray = [makePiece(), makePiece(), makePiece()];
-    score = 0;
-    combo = 0;
-    gameOver = false;
-    overlayEl.classList.remove('show');
-    renderGrid();
-    renderTray();
-    updateScoreUI();
-  }
-
-  document.getElementById('newGameBtn').addEventListener('click', newGame);
-  document.getElementById('restartBtn').addEventListener('click', newGame);
-
-  // =====================================================================
-  // Init
-  // =====================================================================
-  renderGrid();
-  renderTray();
-  updateScoreUI();
-})();
-</script>
-
+    camera.start();
+  </script>
 </body>
 </html>
